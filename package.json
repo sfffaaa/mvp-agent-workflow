@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "agent": "node --loader ts-node/esm src/agent.ts",
+    "agent": "node --import ts-node/esm/register src/agent.ts",
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "test:contracts": "cd contracts && forge test -v"
   },
