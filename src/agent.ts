@@ -40,7 +40,14 @@ const config: AgentConfig = {
   rebalanceThreshold: parseUnits(requireEnv("REBALANCE_THRESHOLD"), 6),
   compoundThreshold: parseUnits(requireEnv("COMPOUND_THRESHOLD"), 6),
   bridgeThreshold: parseUnits(requireEnv("BRIDGE_THRESHOLD"), 6),
-  pollIntervalMs: Number(process.env.POLL_INTERVAL_MS ?? 60000),
+  pollIntervalMs: (() => {
+    const n = Number(process.env.POLL_INTERVAL_MS ?? 60000)
+    if (!Number.isFinite(n) || n <= 0) {
+      console.error("Invalid POLL_INTERVAL_MS — must be a positive number. Using 60000.")
+      return 60000
+    }
+    return n
+  })(),
 }
 
 const RPC_URL = "https://avalanche-fuji-c-chain-rpc.publicnode.com"
@@ -76,5 +83,11 @@ async function tick(): Promise<void> {
 console.log("Agent started. Polling every", config.pollIntervalMs / 1000, "seconds.")
 console.log("Agent address:", account.address)
 
-tick()
-setInterval(tick, config.pollIntervalMs)
+// Use recursive setTimeout to prevent overlapping ticks when a poll takes
+// longer than the interval (e.g. slow RPC, receipt timeouts).
+async function scheduledTick(): Promise<void> {
+  await tick()
+  setTimeout(scheduledTick, config.pollIntervalMs)
+}
+
+scheduledTick()

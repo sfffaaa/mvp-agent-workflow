@@ -15,6 +15,7 @@ contract MockStaking {
     }
 
     function stake(uint256 amount) external {
+        require(amount > 0, "amount must be > 0");
         // Settle any pending reward first
         uint256 pending = pendingReward(msg.sender);
         if (pending > 0) _transferReward(msg.sender, pending);

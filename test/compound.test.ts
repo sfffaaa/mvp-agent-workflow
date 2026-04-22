@@ -5,7 +5,9 @@ import { parseUnits } from "viem"
 const makePublicClient = (pendingReward: bigint, stakedBalance: bigint) => ({
   readContract: jest.fn()
     .mockResolvedValueOnce(pendingReward)
-    .mockResolvedValueOnce(stakedBalance),
+    .mockResolvedValueOnce(stakedBalance)
+    .mockResolvedValue(pendingReward), // actualBalance read after claim
+  waitForTransactionReceipt: jest.fn().mockResolvedValue({ status: "success" }),
 })
 
 const makeWalletClient = () => ({

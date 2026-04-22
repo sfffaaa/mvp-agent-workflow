@@ -1,6 +1,5 @@
 import { type PublicClient, type WalletClient, type Address, formatUnits } from "viem"
 import { MOCK_ASSET_ABI, MOCK_SWAP_ABI } from "../types.js"
-import { logExecution } from "../logger.js"
 
 interface RebalanceConfig {
   usdcAddress: Address
@@ -32,12 +31,16 @@ export async function runRebalance(
   if (excess <= 0n) {
     const msg = `balance: ${formatUnits(balance, 6)} USDC, threshold: ${formatUnits(config.rebalanceThreshold, 6)} → skip`
     console.log(`[rebalance] ${msg}`)
-    await log(walletClient, publicClient, config.workflowLogAddress, "rebalance", msg, "skip")
+    try {
+      await log(walletClient, publicClient, config.workflowLogAddress, "rebalance", msg, "skip")
+    } catch (e) {
+      console.error("[rebalance] log failed:", e instanceof Error ? e.message : String(e))
+    }
     return
   }
 
-  // Approve swap
-  await walletClient.writeContract({
+  // Approve swap — wait for receipt before proceeding
+  const approveHash = await walletClient.writeContract({
     address: config.usdcAddress,
     abi: MOCK_ASSET_ABI,
     functionName: "approve",
@@ -45,6 +48,7 @@ export async function runRebalance(
     chain: null,
     account: walletClient.account!,
   })
+  await publicClient.waitForTransactionReceipt({ hash: approveHash, timeout: 60_000 })
 
   // Execute swap
   await walletClient.writeContract({
@@ -58,5 +62,9 @@ export async function runRebalance(
 
   const msg = `balance: ${formatUnits(balance, 6)} USDC → swap ${formatUnits(excess, 6)} USDC→ETH`
   console.log(`[rebalance] ${msg}`)
-  await log(walletClient, publicClient, config.workflowLogAddress, "rebalance", msg, "success")
+  try {
+    await log(walletClient, publicClient, config.workflowLogAddress, "rebalance", msg, "success")
+  } catch (e) {
+    console.error("[rebalance] log failed:", e instanceof Error ? e.message : String(e))
+  }
 }
