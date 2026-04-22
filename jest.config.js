@@ -1,13 +1,13 @@
+import { createDefaultEsmPreset } from "ts-jest"
+
+const preset = createDefaultEsmPreset({
+  tsconfig: { isolatedModules: true },
+})
+
 export default {
-  preset: "ts-jest/presets/default-esm",
+  ...preset,
   testEnvironment: "node",
-  extensionsToTreatAsEsm: [".ts"],
   moduleNameMapper: { "^(\\.{1,2}/.*)\\.js$": "$1" },
   injectGlobals: true,
-  globals: {
-    "ts-jest": {
-      useESM: true,
-      tsconfig: { isolatedModules: true },
-    },
-  },
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
 }
