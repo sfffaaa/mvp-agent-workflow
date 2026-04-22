@@ -1,5 +1,6 @@
 import { type PublicClient, type WalletClient, type Address, formatUnits } from "viem"
 import { MOCK_ASSET_ABI, MOCK_SWAP_ABI } from "../types.js"
+import { type LogFn, safeLog } from "../logger.js"
 
 interface RebalanceConfig {
   usdcAddress: Address
@@ -7,9 +8,6 @@ interface RebalanceConfig {
   workflowLogAddress: Address
   rebalanceThreshold: bigint
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type LogFn = (...args: any[]) => Promise<void>
 
 export async function runRebalance(
   publicClient: PublicClient,
@@ -31,15 +29,11 @@ export async function runRebalance(
   if (excess <= 0n) {
     const msg = `balance: ${formatUnits(balance, 6)} USDC, threshold: ${formatUnits(config.rebalanceThreshold, 6)} → skip`
     console.log(`[rebalance] ${msg}`)
-    try {
-      await log(walletClient, publicClient, config.workflowLogAddress, "rebalance", msg, "skip")
-    } catch (e) {
-      console.error("[rebalance] log failed:", e instanceof Error ? e.message : String(e))
-    }
+    await safeLog("rebalance", log, walletClient, publicClient, config.workflowLogAddress, "rebalance", msg, "skip")
     return
   }
 
-  // Approve swap — wait for receipt before proceeding
+  // wait for approve receipt before swap — allowance must be on-chain first
   const approveHash = await walletClient.writeContract({
     address: config.usdcAddress,
     abi: MOCK_ASSET_ABI,
@@ -50,7 +44,6 @@ export async function runRebalance(
   })
   await publicClient.waitForTransactionReceipt({ hash: approveHash, timeout: 60_000 })
 
-  // Execute swap
   await walletClient.writeContract({
     address: config.mockSwapAddress,
     abi: MOCK_SWAP_ABI,
@@ -62,9 +55,5 @@ export async function runRebalance(
 
   const msg = `balance: ${formatUnits(balance, 6)} USDC → swap ${formatUnits(excess, 6)} USDC→ETH`
   console.log(`[rebalance] ${msg}`)
-  try {
-    await log(walletClient, publicClient, config.workflowLogAddress, "rebalance", msg, "success")
-  } catch (e) {
-    console.error("[rebalance] log failed:", e instanceof Error ? e.message : String(e))
-  }
+  await safeLog("rebalance", log, walletClient, publicClient, config.workflowLogAddress, "rebalance", msg, "success")
 }

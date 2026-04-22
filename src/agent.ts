@@ -30,6 +30,15 @@ function requireAddr(name: string): `0x${string}` {
   return val as `0x${string}`
 }
 
+function requirePositiveInt(name: string, fallback: number): number {
+  const n = Number(process.env[name] ?? fallback)
+  if (!Number.isFinite(n) || n <= 0) {
+    console.error(`Invalid ${name} — must be a positive number. Using ${fallback}.`)
+    return fallback
+  }
+  return n
+}
+
 const config: AgentConfig = {
   agentPk: requireEnv("AGENT_PK") as `0x${string}`,
   usdcAddress: requireAddr("USDC_ADDRESS"),
@@ -40,14 +49,7 @@ const config: AgentConfig = {
   rebalanceThreshold: parseUnits(requireEnv("REBALANCE_THRESHOLD"), 6),
   compoundThreshold: parseUnits(requireEnv("COMPOUND_THRESHOLD"), 6),
   bridgeThreshold: parseUnits(requireEnv("BRIDGE_THRESHOLD"), 6),
-  pollIntervalMs: (() => {
-    const n = Number(process.env.POLL_INTERVAL_MS ?? 60000)
-    if (!Number.isFinite(n) || n <= 0) {
-      console.error("Invalid POLL_INTERVAL_MS — must be a positive number. Using 60000.")
-      return 60000
-    }
-    return n
-  })(),
+  pollIntervalMs: requirePositiveInt("POLL_INTERVAL_MS", 60000),
 }
 
 const RPC_URL = "https://avalanche-fuji-c-chain-rpc.publicnode.com"

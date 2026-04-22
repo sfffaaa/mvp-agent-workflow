@@ -23,3 +23,14 @@ export async function logExecution(
   })
   await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 })
 }
+
+export type LogFn = typeof logExecution
+
+/** Calls log() and swallows errors so a failed log never masks a successful workflow action. */
+export async function safeLog(tag: string, log: LogFn, ...args: Parameters<LogFn>): Promise<void> {
+  try {
+    await log(...args)
+  } catch (e) {
+    console.error(`[${tag}] log failed:`, e instanceof Error ? e.message : String(e))
+  }
+}
