@@ -44,7 +44,7 @@ export async function runRebalance(
   })
   await publicClient.waitForTransactionReceipt({ hash: approveHash, timeout: 60_000 })
 
-  await walletClient.writeContract({
+  const swapHash = await walletClient.writeContract({
     address: config.mockSwapAddress,
     abi: MOCK_SWAP_ABI,
     functionName: "swap",
@@ -52,6 +52,7 @@ export async function runRebalance(
     chain: null,
     account: walletClient.account!,
   })
+  await publicClient.waitForTransactionReceipt({ hash: swapHash, timeout: 60_000 })
 
   const msg = `balance: ${formatUnits(balance, 6)} USDC → swap ${formatUnits(excess, 6)} USDC→ETH`
   console.log(`[rebalance] ${msg}`)

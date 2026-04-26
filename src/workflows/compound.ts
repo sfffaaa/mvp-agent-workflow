@@ -71,7 +71,7 @@ export async function runCompound(
   })
   await publicClient.waitForTransactionReceipt({ hash: approveHash, timeout: 60_000 })
 
-  await walletClient.writeContract({
+  const stakeHash = await walletClient.writeContract({
     address: config.mockStakingAddress,
     abi: MOCK_STAKING_ABI,
     functionName: "stake",
@@ -79,6 +79,7 @@ export async function runCompound(
     chain: null,
     account: walletClient.account!,
   })
+  await publicClient.waitForTransactionReceipt({ hash: stakeHash, timeout: 60_000 })
 
   const msg = `reward: ${formatUnits(pendingReward, 6)}, staked: ${formatUnits(stakedBalance, 6)} → claim+restake ${formatUnits(restakeAmount, 6)}`
   console.log(`[compound] ${msg}`)
