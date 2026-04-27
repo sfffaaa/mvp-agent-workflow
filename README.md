@@ -15,7 +15,7 @@ Every 60 seconds the agent reads chain state, checks three conditions, and execu
 ## Architecture
 
 ```
-Agent (Node.js, setInterval 60s)
+Agent (Node.js, recursive setTimeout 60s)
   │
   ├─ rebalance → reads USDC balance → MockSwap.swap() → WorkflowLog.log()
   ├─ compound  → reads pendingReward → MockStaking.claim()+stake() → WorkflowLog.log()
